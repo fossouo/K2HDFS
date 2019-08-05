@@ -8,8 +8,11 @@ import org.apache.spark.streaming.kafka010.KafkaUtils
 import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
 import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
 import org.apache.spark.streaming.{Seconds, StreamingContext}
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.{SparkConf, SparkContext, rdd}
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
+import org.apache.spark.sql.streaming.{OutputMode, Trigger}
+import scala.concurrent.duration._
+
 import scala.collection.mutable.HashMap
 import scala.io.Source.fromFile
 
@@ -24,16 +27,6 @@ object ConsumerStreaming{
     props
   }
 
-  def writeStreamer(input: DataFrame, checkPointFolder: String, output: String): StreamingQuery = {
-    input
-      .writeStream
-      .format("orc")
-      .option("checkpointLocation", checkPointFolder)
-      .option("path", output)
-      .outputMode(OutputMode.Append)
-      .start()
-  }
-
   def main(args: Array[String]) {
 
 
@@ -41,55 +34,38 @@ object ConsumerStreaming{
     val props = getProps(args(0))
 
 
-
-    val kafkaParams = Map[String, Object](
-      "bootstrap.servers" -> props.get("bootstrap.servers").get,
-      "key.deserializer" -> classOf[StringDeserializer],
-      "value.deserializer" -> classOf[StringDeserializer],
-      "group.id" -> props.get("group.id").get,
-      "auto.offset.reset" -> props.get("auto.offset.reset").get,
-      "enable.auto.commit" -> (false: java.lang.Boolean)
-    )
-
     val conf = new SparkConf().setMaster("local[2]").setAppName("TestKafkaConsumer")
 
-    lazy val streamingContext = new StreamingContext(conf, Seconds(3))
+//    lazy val streamingContext = new StreamingContext(conf, Seconds(10))
 
 
-    val topics = Array("test")
-    val stream = KafkaUtils.createDirectStream[String, String](
-      streamingContext,
-      PreferConsistent,
-      Subscribe[String, String](topics, kafkaParams)
-    )
-
-    val ds = stream.map(record => (record.key, record.value))
-
-    ds.foreachRDD { rdd =>
-
-      val offsets = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
-
-      val spark = SparkSession.builder.config(rdd.sparkContext.getConf).getOrCreate()
-      import spark.implicits._
-
-      if (!rdd.isEmpty()) {
+    val topics = Array(props.get("topic.name").get)
 
 
-        println("***** here is the contain of the RDD : " + rdd)
-        rdd.saveAsTextFile("/tmp/kafka_20190802/")
+    val spark = SparkSession.builder.config(conf).getOrCreate()
+    import spark.implicits._
 
-        writeStreamer(rdd.toDF(),"/tmp/kafka/checkpoint","/tmp/kafka/output")
+    val ds1 = spark
+      .readStream
+      .format("kafka")
+      .option("kafka.bootstrap.servers", props.get("bootstrap.servers").get)
+      .option("subscribe", topics.toString)
+      .option("startingOffsets", props.get("auto.offset.reset").get)
+      .option("groupIdPrefix", props.get("group.id").get)
+      .option("failOnDataLoss", props.get("failOnDataLoss").get)
+      .load.select($"value".cast("string").alias("value"))
 
 
-      }
+    ds1.printSchema()
 
+    val batch = props.get("batch.duration").get.toInt
 
-      // some time later, after outputs have completed
-      stream.asInstanceOf[CanCommitOffsets].commitAsync(offsets)
-    }
+    ds1.
+      writeStream.
+      format("console").
+      option("checkpointLocation", props.get("hdfs.checkpoint.dir").get). // <-- checkpoint directory
+      trigger(Trigger.ProcessingTime(s"$batch seconds")).
+      start.awaitTermination()
 
-
-    streamingContext.start()
-    streamingContext.awaitTermination()
   }
 }

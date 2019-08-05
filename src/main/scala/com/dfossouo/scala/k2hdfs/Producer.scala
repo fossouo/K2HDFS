@@ -14,7 +14,7 @@ object Producer extends App {
 
   val producer = new KafkaProducer[String, String](props)
 
-  val TOPIC="test"
+  val TOPIC="test2"
 
   for(i<- 1 to 50){
     val record = new ProducerRecord(TOPIC, "key", s"hello $i")
