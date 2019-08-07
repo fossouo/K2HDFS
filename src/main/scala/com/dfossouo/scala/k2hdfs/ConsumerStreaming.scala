@@ -11,8 +11,9 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext, rdd}
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.apache.spark.sql.streaming.{OutputMode, Trigger}
-import scala.concurrent.duration._
+import org.apache.spark.sql.types.{IntegerType, LongType, StringType, TimestampType}
 
+import scala.concurrent.duration._
 import scala.collection.mutable.HashMap
 import scala.io.Source.fromFile
 
@@ -34,38 +35,59 @@ object ConsumerStreaming{
     val props = getProps(args(0))
 
 
-    val conf = new SparkConf().setMaster("local[2]").setAppName("TestKafkaConsumer")
+//    val conf = new SparkConf().setAppName("TestKafkaConsumer")
 
 //    lazy val streamingContext = new StreamingContext(conf, Seconds(10))
 
 
-    val topics = Array(props.get("topic.name").get)
+    val topics = props.get("topic.name").get
 
 
-    val spark = SparkSession.builder.config(conf).getOrCreate()
+    val spark = SparkSession.builder.appName("TestKafkaConsumer")
+      .config("hive.exec.dynamic.partition", "true")
+      .config("hive.exec.dynamic.partition.mode", "nonstrict")
+      .getOrCreate()
     import spark.implicits._
 
     val ds1 = spark
       .readStream
       .format("kafka")
       .option("kafka.bootstrap.servers", props.get("bootstrap.servers").get)
-      .option("subscribe", topics.toString)
+      .option("fetch.message.max.bytes", "50000")
+      .option("kafka.max.partition.fetch.bytes", "50000")
+      .option("subscribe", topics)
       .option("startingOffsets", props.get("auto.offset.reset").get)
       .option("groupIdPrefix", props.get("group.id").get)
       .option("failOnDataLoss", props.get("failOnDataLoss").get)
-      .load.select($"value".cast("string").alias("value"))
-
+      .load()
+      .withColumn("Key", $"key".cast(StringType))
+      .withColumn("Topic", $"topic".cast(StringType))
+      .withColumn("Offset", $"offset".cast(LongType))
+      .withColumn("Partition", $"partition".cast(IntegerType))
+      .withColumn("Timestamp", $"timestamp".cast(TimestampType))
+      .withColumn("Value", $"value".cast(StringType))
+      .select("Value")
 
     ds1.printSchema()
 
+
+
     val batch = props.get("batch.duration").get.toInt
 
-    ds1.
-      writeStream.
-      format("console").
-      option("checkpointLocation", props.get("hdfs.checkpoint.dir").get). // <-- checkpoint directory
-      trigger(Trigger.ProcessingTime(s"$batch seconds")).
-      start.awaitTermination()
+
+    ds1.writeStream
+        .format("parquet")
+        .outputMode("append")
+        .option("startingOffsets", "latest")
+        .option("compression", "snappy")
+        .option("parquet.block.size", "1024")
+        .option("path", "/tmp/hive_table")
+        .option("checkpointLocation", props.get("hdfs.checkpoint.dir").get) // <-- checkpoint directory
+        .trigger(Trigger.ProcessingTime(s"$batch seconds"))
+        .start.awaitTermination()
+
+
+
 
   }
 }
