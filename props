@@ -5,11 +5,14 @@
 #
 ##############################################################
 
-bootstrap.servers=c225-node2.squadron-labs.com:6667,c225-node3.squadron-labs.com:6667,c225-node4.squadron-labs.com:6667
+bootstrap.servers=c125-node5.squadron-labs.com:6667
 group.id=use_a_separate_group_id_for_each_stream-2
 auto.offset.reset=latest
 topic.name=test2
-hdfs.output.dir=hdfs://c225-node2.squadron-labs.com:8020/tmp/output_dir
-hdfs.checkpoint.dir=hdfs://c225-node2.squadron-labs.com:8020/tmp/checkpoint_dir
+hdfs.output.dir=hdfs://c125-node2.squadron-labs.com:8020/tmp/output_dir
+hdfs.checkpoint.dir=hdfs://c125-node2.squadron-labs.com:8020/tmp/checkpoint_dir
 failOnDataLoss=false
 batch.duration=30
+
+key.serializer=org.apache.kafka.common.serialization.StringSerializer
+value.serializer=org.apache.kafka.common.serialization.StringSerializer
