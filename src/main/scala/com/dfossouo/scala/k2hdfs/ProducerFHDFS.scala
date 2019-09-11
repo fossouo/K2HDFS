@@ -24,6 +24,7 @@ object ProducerFHDFS{
     val props = getProps(args(0))
 
     val topics = props.get("topic.name").get
+    val sourcedir = props.get("hdfs.output.dir").get
 
 
     val spark = SparkSession.builder.appName("TestKafkaConsumer")
@@ -34,8 +35,9 @@ object ProducerFHDFS{
     val ds1 = spark
         .read
         .format("parquet")
-         .option("compression", "snappy")
-        .load(props.get("hdfs.output.dir").get)
+        .option("compression", "snappy")
+        .option("path", sourcedir)
+        .load()
 
     ds1.printSchema()
 
