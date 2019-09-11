@@ -42,7 +42,6 @@ object ConsumerStreaming{
 
     val topics = props.get("topic.name").get
 
-
     val spark = SparkSession.builder.appName("TestKafkaConsumer")
       .config("hive.exec.dynamic.partition", "true")
       .config("hive.exec.dynamic.partition.mode", "nonstrict")
@@ -81,7 +80,7 @@ object ConsumerStreaming{
         .option("startingOffsets", "latest")
         .option("compression", "snappy")
         .option("parquet.block.size", "1024")
-        .option("path", "/tmp/hive_table")
+        .option("path", props.get("hdfs.output.dir").get)
         .option("checkpointLocation", props.get("hdfs.checkpoint.dir").get) // <-- checkpoint directory
         .trigger(Trigger.ProcessingTime(s"$batch seconds"))
         .start.awaitTermination()
