@@ -40,11 +40,10 @@ object ProducerFHDFS{
 
     ds1.printSchema()
 
-    ds1.selectExpr("topic", "CAST(key AS STRING)", "CAST(value AS STRING)")
+    ds1.selectExpr(topics, "CAST(key AS STRING)", "CAST(value AS STRING)")
       .write
       .format("kafka")
       .option("kafka.bootstrap.servers", props.get("bootstrap.servers").get)
-      .option("topic", topics)
       .save()
 
   }
