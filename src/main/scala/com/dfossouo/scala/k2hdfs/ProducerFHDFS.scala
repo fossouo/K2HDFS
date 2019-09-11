@@ -34,6 +34,7 @@ object ProducerFHDFS{
     val ds1 = spark
         .read
         .format("parquet")
+         .option("compression", "snappy")
         .load(props.get("hdfs.output.dir").get)
 
     ds1.printSchema()
