@@ -36,8 +36,7 @@ object ProducerFHDFS{
         .read
         .format("parquet")
         .option("compression", "snappy")
-        .option("path", sourcedir)
-        .load()
+        .load(sourcedir)
 
     ds1.printSchema()
 
