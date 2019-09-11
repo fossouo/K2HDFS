@@ -38,7 +38,7 @@ object ProducerFHDFS{
         .option("compression", "snappy")
         .load(sourcedir)
 
-    ds1.printSchema()
+    println(ds1.printSchema())
 
     ds1.selectExpr(topics, "CAST(key AS STRING)", "CAST(value AS STRING)")
       .write
