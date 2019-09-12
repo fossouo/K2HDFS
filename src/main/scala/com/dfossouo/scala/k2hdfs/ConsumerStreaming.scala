@@ -75,7 +75,7 @@ object ConsumerStreaming{
 
 
     ds1.writeStream
-        .format("parquet")
+        .format("org.apache.spark.sql.kafka010.KafkaSourceProvider")
         .outputMode("append")
         .option("startingOffsets", "latest")
         .option("compression", "snappy")
