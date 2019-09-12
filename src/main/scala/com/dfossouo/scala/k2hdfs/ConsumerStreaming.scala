@@ -50,7 +50,7 @@ object ConsumerStreaming{
 
     val ds1 = spark
       .readStream
-      .format("kafka")
+      .format("org.apache.spark.sql.kafka010.KafkaSourceProvider")
       .option("kafka.bootstrap.servers", props.get("bootstrap.servers").get)
       .option("fetch.message.max.bytes", "50000")
       .option("kafka.max.partition.fetch.bytes", "50000")

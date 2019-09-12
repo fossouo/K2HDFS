@@ -42,7 +42,7 @@ object ProducerFHDFS{
 
     ds1.selectExpr("CAST(value AS STRING)")
       .write
-      .format("kafka")
+      .format("org.apache.spark.sql.kafka010.KafkaSourceProvider")
       .option("kafka.bootstrap.servers", props.get("bootstrap.servers").get)
       .option("topic",topics)
       .save()
