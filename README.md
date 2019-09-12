@@ -6,6 +6,10 @@ Maven plugin in Intellij
 
 Run from project directory in Shell :
 
+[hdfs@c125-node6 K2HDFS]$ jar -tf kafka-to-hdfs-1.0.jar | grep org.apache.spark.sql.kafka010.KafkaSourceProvider
+org/apache/spark/sql/kafka010/KafkaSourceProvider$ConfigUpdater$$anonfun$setIfUnset$1.class
+
+
 
 [hdfs@c225-node2 tmp]$ spark-submit --master yarn --deploy-mode cluster --driver-memory 4g --executor-memory 2g --num-executors 4 --files /tmp/props2 --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.2.0 kafka-to-hdfs-1.0-jar-with-dependencies.jar ./props2
 
