@@ -111,6 +111,11 @@
             </goals>
 
         <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.dfossouo.scala.k2hdfs.ConsumerStreaming</mainClass>
+            </manifest>
+          </archive>
           <filters>
             <filter>
               <artifact>*:*</artifact>
