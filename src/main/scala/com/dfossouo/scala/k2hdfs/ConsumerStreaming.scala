@@ -12,6 +12,7 @@ import org.apache.spark.{SparkConf, SparkContext, rdd}
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.apache.spark.sql.streaming.{OutputMode, Trigger}
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType, TimestampType}
+import org.apache.spark.sql.functions._
 
 import scala.concurrent.duration._
 import scala.collection.mutable.HashMap
@@ -50,7 +51,7 @@ object ConsumerStreaming{
 
     val ds1 = spark
       .readStream
-      .format("org.apache.spark.sql.kafka010.KafkaSourceProvider")
+      .format("kafka")
       .option("kafka.bootstrap.servers", props.get("bootstrap.servers").get)
       .option("fetch.message.max.bytes", "50000")
       .option("kafka.max.partition.fetch.bytes", "50000")
@@ -63,7 +64,7 @@ object ConsumerStreaming{
       .withColumn("Topic", $"topic".cast(StringType))
       .withColumn("Offset", $"offset".cast(LongType))
       .withColumn("Partition", $"partition".cast(IntegerType))
-      .withColumn("Timestamp", $"timestamp".cast(TimestampType))
+      .withColumn("Timestamp", current_date())
       .withColumn("Value", $"value".cast(StringType))
       .select("Value")
 
@@ -80,6 +81,7 @@ object ConsumerStreaming{
         .option("startingOffsets", "latest")
         .option("compression", "snappy")
         .option("parquet.block.size", "1024")
+      .partitionBy("Timestamp")
         .option("path", props.get("hdfs.output.dir").get)
         .option("checkpointLocation", props.get("hdfs.checkpoint.dir").get) // <-- checkpoint directory
         .trigger(Trigger.ProcessingTime(s"$batch seconds"))
