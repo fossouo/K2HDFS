@@ -56,12 +56,13 @@ object ConsumerStreaming{
       .option("fetch.message.max.bytes", "50000")
       .option("kafka.max.partition.fetch.bytes", "50000")
       .option("subscribe", topics)
+      .option("topic",topics)
       .option("startingOffsets", props.get("auto.offset.reset").get)
       .option("groupIdPrefix", props.get("group.id").get)
       .option("failOnDataLoss", props.get("failOnDataLoss").get)
       .load()
       .withColumn("Key", $"key".cast(StringType))
-      .withColumn("Topic", $"topic".cast(StringType))
+//      .withColumn("Topic", $"topic".cast(StringType))
       .withColumn("Offset", $"offset".cast(LongType))
       .withColumn("Partition", $"partition".cast(IntegerType))
       .withColumn("Timestamp", current_date())
@@ -76,7 +77,7 @@ object ConsumerStreaming{
 
 
     ds1.writeStream
-        .format("org.apache.spark.sql.kafka010.KafkaSourceProvider")
+        .format("parquet")
         .outputMode("append")
         .option("startingOffsets", "latest")
         .option("compression", "snappy")
